@@ -20,7 +20,7 @@ if __name__ == "__main__":
         thread = threading.Thread(
             target=traceroute,
             args=(
-                node["server_id"],
+                node["id"],
                 node["server"].split(";")[0],
             ),
         )
