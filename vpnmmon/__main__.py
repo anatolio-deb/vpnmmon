@@ -15,7 +15,7 @@ class Monitor:
 
     def __init__(self) -> None:
         self.client.token = os.environ["VPNM_TOKEN"]
-        self.nodes = self.client.get_nodes()
+        self.nodes = self.client.nodes
         print(f"{len(self.nodes)} nodes recieved")
 
     def traceroute(self, node_id: int, host: str) -> None:
@@ -33,7 +33,7 @@ class Monitor:
             except socket.gaierror as ex:
                 print(f"Node {node_id}: {ex}")
             else:
-                if address in output[0] and output[-1]:
+                if address in output[0] and address in output[-1]:
                     print(f"Node id{node_id} is available")
                     self.total_available += 1
                 else:
@@ -42,7 +42,7 @@ class Monitor:
                 self.lock.acquire()
 
                 with open(self.log_path, "a", encoding="utf-8") as file:
-                    file.write("".join(output))
+                    file.write("\n".join(output))
 
                 self.lock.release()
 
