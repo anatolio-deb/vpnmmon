@@ -1,3 +1,4 @@
+import socket
 import subprocess
 import threading
 
@@ -17,20 +18,27 @@ class Monitor:
         print(f"{len(self.nodes)} nodes recieved")
 
     def traceroute(self, node_id: int, host: str) -> None:
-        proc = subprocess.run(["traceroute", host], capture_output=True, check=True)
-        output = proc.stdout.decode()
-        if output.endswith("30  * * *\n") or len(output.split("\n")) <= 3:
-            print(f"Node id{node_id} is unavailable")
+        try:
+            proc = subprocess.run(
+                ["traceroute", host, "-T"], capture_output=True, check=True
+            )
+        except subprocess.CalledProcessError as ex:
+            print(ex.stderr.decode())
         else:
-            print(f"Node id{node_id} is available")
-            self.total_available += 1
+            output = list(filter(lambda x: x, proc.stdout.decode().split("\n")))
 
-        self.lock.acquire()
+            if socket.gethostbyname(host) in output[0] and output[-1]:
+                print(f"Node id{node_id} is available")
+                self.total_available += 1
+            else:
+                print(f"Node id{node_id} is unavailable")
 
-        with open(self.log_path, "a", encoding="utf-8") as file:
-            file.write(output)
+            self.lock.acquire()
 
-        self.lock.release()
+            with open(self.log_path, "a", encoding="utf-8") as file:
+                file.write(output)
+
+            self.lock.release()
 
     def run(self):
         for node in self.nodes:
