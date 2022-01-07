@@ -1,3 +1,4 @@
+import os
 import socket
 import subprocess
 import threading
@@ -6,14 +7,14 @@ from vpnmauth import VpnmApiClient
 
 
 class Monitor:
+    client = VpnmApiClient()
     total_available = 0
     log_path = "/tmp/vpnmmon.log"
     lock = threading.Lock()
     threads: threading.Thread = []
 
     def __init__(self) -> None:
-        self.client = VpnmApiClient()
-        print("Logged in")
+        self.client.token = os.environ["VPNM_TOKEN"]
         self.nodes = self.client.get_nodes()
         print(f"{len(self.nodes)} nodes recieved")
 
@@ -27,18 +28,23 @@ class Monitor:
         else:
             output = list(filter(lambda x: x, proc.stdout.decode().split("\n")))
 
-            if socket.gethostbyname(host) in output[0] and output[-1]:
-                print(f"Node id{node_id} is available")
-                self.total_available += 1
+            try:
+                address = socket.gethostbyname(host)
+            except socket.gaierror as ex:
+                print(f"Node {node_id}: {ex}")
             else:
-                print(f"Node id{node_id} is unavailable")
+                if address in output[0] and output[-1]:
+                    print(f"Node id{node_id} is available")
+                    self.total_available += 1
+                else:
+                    print(f"Node id{node_id} is unavailable")
+            finally:
+                self.lock.acquire()
 
-            self.lock.acquire()
+                with open(self.log_path, "a", encoding="utf-8") as file:
+                    file.write("".join(output))
 
-            with open(self.log_path, "a", encoding="utf-8") as file:
-                file.write(output)
-
-            self.lock.release()
+                self.lock.release()
 
     def run(self):
         for node in self.nodes:
