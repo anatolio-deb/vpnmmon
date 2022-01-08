@@ -36,7 +36,7 @@ class Monitor:
             self.lock.acquire()
 
             with open(self.log_path, "a", encoding="utf-8") as file:
-                file.write("\n".join(result.append("\n")))
+                file.write("\n".join(result) + "\n")
 
             self.lock.release()
 
