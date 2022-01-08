@@ -5,7 +5,7 @@ description = ""
 authors = ["Анатолий Никифоров <nikiforova693@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3"
+python = "^3.8"
 vpnmauth = {git = "https://github.com/anatolio-deb/vpnmauth.git"}
 
 [tool.poetry.dev-dependencies]
