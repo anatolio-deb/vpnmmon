@@ -27,11 +27,12 @@ class Monitor:
         else:
             result = proc.stdout.decode().split()
 
-            if len(result > 5):
+            if len(result) > 5:
                 print(f"Node id{node_id} is available")
                 self.total_available += 1
             else:
                 print(f"Node id{node_id} is unavailable")
+
             self.lock.acquire()
 
             with open(self.log_path, "a", encoding="utf-8") as file:
