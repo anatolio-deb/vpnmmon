@@ -25,7 +25,7 @@ class Monitor:
         except subprocess.CalledProcessError as ex:
             print(ex.stderr.decode())
         else:
-            result = proc.stdout.decode().split()
+            result = proc.stdout.decode().split("\n")
 
             if len(result) > 5:
                 print(f"Node id{node_id} is available")
@@ -36,7 +36,7 @@ class Monitor:
             self.lock.acquire()
 
             with open(self.log_path, "a", encoding="utf-8") as file:
-                file.write("\n".join(result))
+                file.write("\n".join(result.append("\n")))
 
             self.lock.release()
 
