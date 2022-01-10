@@ -1,4 +1,4 @@
-import os
+import argparse
 import subprocess
 import threading
 
@@ -12,10 +12,11 @@ class Monitor:
     lock = threading.Lock()
     threads: threading.Thread = []
 
-    def __init__(self) -> None:
-        self.client.token = os.environ["VPNM_TOKEN"]
-        self.nodes = self.client.nodes
-        print(f"{len(self.nodes)} nodes recieved")
+    def __init__(self, verbose: bool) -> None:
+        self.verbose = verbose
+        self.nodes = self.client.nodes["data"]["node"]
+        if self.verbose:
+            print(f"{len(self.nodes)} nodes recieved")
 
     def traceroute(self, node_id: int, host: str) -> None:
         try:
@@ -26,41 +27,52 @@ class Monitor:
             print(ex.stderr.decode())
         else:
             result = proc.stdout.decode().split("\n")
+            output = {"id": node_id, "hostname": host}
 
             if len(result) > 5:
-                print(f"Node id{node_id} is available")
+                output["status"] = "ok"
                 self.total_available += 1
             else:
-                print(f"Node id{node_id} is unavailable")
+                output["status"] = "fail"
 
             self.lock.acquire()
+
+            print(output)
 
             with open(self.log_path, "a", encoding="utf-8") as file:
                 file.write("\n".join(result))
 
             self.lock.release()
 
+    @staticmethod
+    def _get_hostname_or_address(node: dict):
+        if node["server"]["port"] == "443":
+            return node["server"]["host"]
+        return node["server"]["address"]
+
     def run(self):
         for node in self.nodes:
             thread = threading.Thread(
                 target=self.traceroute,
-                args=(
-                    node["id"],
-                    node["server"].split(";")[0],
-                ),
+                args=(node["id"], self._get_hostname_or_address(node)),
             )
             thread.start()
-            print(f"Tracerouting node id{node['id']} in thread {thread.ident}")
+            if self.verbose:
+                print(f"Tracerouting node id{node['id']} in thread {thread.ident}")
             self.threads.append(thread)
 
         for thread in self.threads:
             thread.join()
 
-        print("Availability check completed")
-        print(f"{self.total_available}/{len(self.nodes)} nodes available")
-        print(f"Full log can be found at {self.log_path}")
+        if self.verbose:
+            print("Availability check completed")
+            print(f"{self.total_available}/{len(self.nodes)} nodes available")
+            print(f"Full log can be found at {self.log_path}")
 
 
 if __name__ == "__main__":
-    monitor = Monitor()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", action="store_true", default=False)
+    args = parser.parse_args()
+    monitor = Monitor(verbose=args.verbose)
     monitor.run()
