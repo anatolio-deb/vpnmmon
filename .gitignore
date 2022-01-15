@@ -7,3 +7,4 @@ poetry.lock
 .devcontainer
 __pycache__
 docker-compose.yml
+requirements.txt
