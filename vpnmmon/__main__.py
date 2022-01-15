@@ -3,13 +3,7 @@ import subprocess
 import threading
 from typing import List
 
-from vpnmauth import VpnmApiClient
-
-
-def get_hostname_or_address(node: dict):
-    if node["server"][0][1] == "443":
-        return node["server"][1]["host"]
-    return node["server"][0][0]
+from vpnmauth import VpnmApiClient, get_hostname_or_address
 
 
 class Monitor:

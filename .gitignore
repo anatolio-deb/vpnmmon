@@ -6,3 +6,4 @@ poetry.lock
 *.pyc
 .devcontainer
 __pycache__
+docker-compose.yml
