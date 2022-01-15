@@ -1,8 +1,15 @@
 import argparse
 import subprocess
 import threading
+from typing import List
 
 from vpnmauth import VpnmApiClient
+
+
+def get_hostname_or_address(node: dict):
+    if node["server"][0][1] == "443":
+        return node["server"][1]["host"]
+    return node["server"][0][0]
 
 
 class Monitor:
@@ -10,7 +17,7 @@ class Monitor:
     total_available = 0
     log_path = "/tmp/vpnmmon.log"
     lock = threading.Lock()
-    threads: threading.Thread = []
+    threads: List[threading.Thread] = []
 
     def __init__(self, verbose: bool) -> None:
         self.verbose = verbose
@@ -44,17 +51,11 @@ class Monitor:
 
             self.lock.release()
 
-    @staticmethod
-    def _get_hostname_or_address(node: dict):
-        if node["server"]["port"] == "443":
-            return node["server"]["host"]
-        return node["server"]["address"]
-
     def run(self):
         for node in self.nodes:
             thread = threading.Thread(
                 target=self.traceroute,
-                args=(node["id"], self._get_hostname_or_address(node)),
+                args=(node["id"], get_hostname_or_address(node)),
             )
             thread.start()
             if self.verbose:
