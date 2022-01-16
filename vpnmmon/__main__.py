@@ -49,7 +49,7 @@ class Monitor:
             print(output)
 
             with open(self.log_path, "a", encoding="utf-8") as file:
-                file.write("\n".join(result))
+                file.write(proc.stdout.decode())
 
             self.lock.release()
 
