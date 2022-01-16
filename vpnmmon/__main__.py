@@ -27,10 +27,18 @@ class Monitor:
         except subprocess.CalledProcessError as ex:
             print(ex.stderr.decode())
         else:
-            result = proc.stdout.decode().split("\n")
+            result = list(
+                filter(
+                    lambda line: line[0].isnumeric(),
+                    [
+                        line.strip()
+                        for line in list(filter(None, proc.stdout.decode().split("\n")))
+                    ],
+                )
+            )
             output = {"id": node_id, "hostname": host}
 
-            if len(result) > 5:
+            if len(result) > 4:
                 output["status"] = "ok"
                 self.total_available += 1
             else:
