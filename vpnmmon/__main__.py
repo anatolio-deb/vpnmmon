@@ -1,9 +1,12 @@
 import argparse
+import logging
 import subprocess
 import threading
 from typing import List
 
 from vpnmauth import VpnmApiClient, get_hostname_or_address
+
+logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
 
 class Monitor:
@@ -16,16 +19,20 @@ class Monitor:
     def __init__(self, verbose: bool) -> None:
         self.verbose = verbose
         self.nodes = self.client.nodes["data"]["node"]
-        if self.verbose:
-            print(f"{len(self.nodes)} nodes recieved")
+        if self.verbose in ["info", "debug"]:
+            logging.info("%s nodes recieved", len(self.nodes))
 
     def traceroute(self, node_id: int, host: str) -> None:
+        output = {"id": node_id, "hostname": host}
+
         try:
             proc = subprocess.run(
                 ["traceroute", "-T", "-m", "8", host], capture_output=True, check=True
             )
         except subprocess.CalledProcessError as ex:
-            print(ex.stderr.decode())
+            if self.verbose in ["error", "debug"]:
+                logging.error(ex.stderr.decode())
+            output["status"] = None
         else:
             result = list(
                 filter(
@@ -36,13 +43,12 @@ class Monitor:
                     ],
                 )
             )
-            output = {"id": node_id, "hostname": host}
 
             if len(result) > 4:
-                output["status"] = "ok"
+                output["status"] = True
                 self.total_available += 1
             else:
-                output["status"] = "fail"
+                output["status"] = False
 
             self.lock.acquire()
 
@@ -60,22 +66,29 @@ class Monitor:
                 args=(node["id"], get_hostname_or_address(node)),
             )
             thread.start()
-            if self.verbose:
-                print(f"Tracerouting node id{node['id']} in thread {thread.ident}")
+
+            if self.verbose in ["info", "debug"]:
+                logging.info(
+                    "Tracerouting node id%s in thread %s", node["id"], thread.ident
+                )
             self.threads.append(thread)
 
         for thread in self.threads:
             thread.join()
 
-        if self.verbose:
-            print("Availability check completed")
-            print(f"{self.total_available}/{len(self.nodes)} nodes available")
-            print(f"Full log can be found at {self.log_path}")
+        if self.verbose in ["info", "debug"]:
+            logging.info("Availability check completed")
+            logging.info("%s/%s nodes available", self.total_available, len(self.nodes))
+            logging.info("Full log can be found at %s", self.log_path)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--verbose", action="store_true", default=False)
+    parser.add_argument(
+        "-v",
+        choices=["debug", "info", "error", "none"],
+        default="none",
+    )
     args = parser.parse_args()
     monitor = Monitor(verbose=args.verbose)
     monitor.run()
