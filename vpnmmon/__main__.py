@@ -16,10 +16,10 @@ class Monitor:
     lock = threading.Lock()
     threads: List[threading.Thread] = []
 
-    def __init__(self, verbose: bool) -> None:
-        self.verbose = verbose
+    def __init__(self, verbosity: bool) -> None:
+        self.verbosity = verbosity
         self.nodes = self.client.nodes["data"]["node"]
-        if self.verbose in ["info", "debug"]:
+        if self.verbosity in ["info", "debug"]:
             logging.info("%s nodes recieved", len(self.nodes))
 
     def traceroute(self, node_id: int, host: str) -> None:
@@ -30,7 +30,7 @@ class Monitor:
                 ["traceroute", "-T", "-m", "8", host], capture_output=True, check=True
             )
         except subprocess.CalledProcessError as ex:
-            if self.verbose in ["error", "debug"]:
+            if self.verbosity in ["error", "debug"]:
                 logging.error(ex.stderr.decode())
             output["status"] = None
         else:
@@ -67,7 +67,7 @@ class Monitor:
             )
             thread.start()
 
-            if self.verbose in ["info", "debug"]:
+            if self.verbosity in ["info", "debug"]:
                 logging.info(
                     "Tracerouting node id%s in thread %s", node["id"], thread.ident
                 )
@@ -76,7 +76,7 @@ class Monitor:
         for thread in self.threads:
             thread.join()
 
-        if self.verbose in ["info", "debug"]:
+        if self.verbosity in ["info", "debug"]:
             logging.info("Availability check completed")
             logging.info("%s/%s nodes available", self.total_available, len(self.nodes))
             logging.info("Full log can be found at %s", self.log_path)
@@ -85,10 +85,10 @@ class Monitor:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-v",
+        "--verbosity",
         choices=["debug", "info", "error", "none"],
         default="none",
     )
     args = parser.parse_args()
-    monitor = Monitor(verbose=args.verbose)
+    monitor = Monitor(args.verbosity)
     monitor.run()
