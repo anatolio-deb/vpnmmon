@@ -85,15 +85,11 @@ class Monitor:
 
         for result in self.results:
             if result["status"]:
-                truly.append(self.results[self.results.pop(self.results.index(result))])
+                truly.append(self.results.pop(self.results.index(result)))
 
         for result in self.results:
             if result["status"] is False:
-                falsy.append(
-                    falsy.append(
-                        self.results[self.results.pop(self.results.index(result))]
-                    )
-                )
+                falsy.append(self.results.pop(self.results.index(result)))
 
         self.results = (
             sorted(truly, key=lambda result: result["id"])
