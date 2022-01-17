@@ -45,7 +45,7 @@ class Monitor:
                 self.total_available += 1
             else:
                 output["status"] = False
-
+        finally:
             self.lock.acquire()
 
             print(json.dumps(output))
