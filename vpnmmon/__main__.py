@@ -80,18 +80,50 @@ class Monitor:
         for thread in self.threads:
             thread.join()
 
+        results = []
+
+        for result in self.results:
+            if result["status"] is True:
+                results.insert(
+                    lambda: 0
+                    if not any(results)
+                    else (
+                        results.index(res)
+                        for res in results
+                        if res is True and not results[results.index(res) + 1]
+                    ),
+                    result,
+                )
+            elif result["status"] is False:
+                results.insert(
+                    lambda: (
+                        results.index(res)
+                        for res in results
+                        if res is True and not results[results.index(res) + 1]
+                    )
+                    if any(results)
+                    else (
+                        results.index(res)
+                        for res in results
+                        if results[results.index(res) + 1] is not False
+                    ),
+                    result,
+                )
+            elif result["status"] is None:
+                results.append(result)
+
+        # for result in self.results:
+        #     if result is False:
+        #         results.append(result)
+
         print(
             json.dumps(
                 {
                     "timestamp": self.timestamp,
-                    "results": sorted(
-                        self.results,
-                        key=lambda result: result["status"]
-                        or result["status"] is False,
-                    ),
+                    "results": results,
                 },
-                sort_keys=True,
-                indent=4,
+                # sort_keys=True,
+                # indent=4,
             )
         )
 
