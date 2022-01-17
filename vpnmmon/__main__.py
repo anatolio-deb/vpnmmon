@@ -6,8 +6,6 @@ from typing import List
 
 from vpnmauth import VpnmApiClient, get_hostname_or_address
 
-logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
-
 
 class Monitor:
     client = VpnmApiClient()
@@ -16,11 +14,9 @@ class Monitor:
     lock = threading.Lock()
     threads: List[threading.Thread] = []
 
-    def __init__(self, verbosity: bool) -> None:
-        self.verbosity = verbosity
+    def __init__(self) -> None:
         self.nodes = self.client.nodes["data"]["node"]
-        if self.verbosity in ["info", "debug"]:
-            logging.info("%s nodes recieved", len(self.nodes))
+        logging.info("%s nodes recieved", len(self.nodes))
 
     def traceroute(self, node_id: int, host: str) -> None:
         output = {"id": node_id, "hostname": host}
@@ -30,8 +26,7 @@ class Monitor:
                 ["traceroute", "-T", "-m", "8", host], capture_output=True, check=True
             )
         except subprocess.CalledProcessError as ex:
-            if self.verbosity in ["error", "debug"]:
-                logging.error(ex.stderr.decode())
+            logging.error(ex.stderr.decode())
             output["status"] = None
         else:
             result = list(
@@ -67,19 +62,17 @@ class Monitor:
             )
             thread.start()
 
-            if self.verbosity in ["info", "debug"]:
-                logging.info(
-                    "Tracerouting node id%s in thread %s", node["id"], thread.ident
-                )
+            logging.info(
+                "Tracerouting node id%s in thread %s", node["id"], thread.ident
+            )
             self.threads.append(thread)
 
         for thread in self.threads:
             thread.join()
 
-        if self.verbosity in ["info", "debug"]:
-            logging.info("Availability check completed")
-            logging.info("%s/%s nodes available", self.total_available, len(self.nodes))
-            logging.info("Full log can be found at %s", self.log_path)
+        logging.info("Availability check completed")
+        logging.info("%s/%s nodes available", self.total_available, len(self.nodes))
+        logging.info("Full log can be found at %s", self.log_path)
 
 
 if __name__ == "__main__":
@@ -90,5 +83,16 @@ if __name__ == "__main__":
         default="none",
     )
     args = parser.parse_args()
-    monitor = Monitor(args.verbosity)
+
+    if args.verbosity == "debug":
+        LOGGING_LEVEL = logging.DEBUG
+    elif args.verbosity == "info":
+        LOGGING_LEVEL = logging.INFO
+    elif args.verbosity == "error":
+        LOGGING_LEVEL = logging.ERROR
+    elif args.verbosity == "none":
+        LOGGING_LEVEL = logging.CRITICAL
+
+    logging.basicConfig(format="%(levelname)s:%(message)s", level=LOGGING_LEVEL)
+    monitor = Monitor()
     monitor.run()
