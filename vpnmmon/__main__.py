@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import subprocess
 import threading
@@ -47,7 +48,7 @@ class Monitor:
 
             self.lock.acquire()
 
-            print(output)
+            print(json.dumps(output))
 
             with open(self.log_path, "a", encoding="utf-8") as file:
                 file.write(proc.stdout.decode())
