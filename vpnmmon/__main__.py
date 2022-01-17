@@ -30,13 +30,11 @@ class Monitor:
             logging.error(ex.stderr.decode())
             output["status"] = None
         else:
+            proc_out = proc.stdout.decode()
             result = list(
                 filter(
                     lambda line: line[0].isnumeric(),
-                    [
-                        line.strip()
-                        for line in list(filter(None, proc.stdout.decode().split("\n")))
-                    ],
+                    [line.strip() for line in list(filter(None, proc_out.split("\n")))],
                 )
             )
 
@@ -45,13 +43,17 @@ class Monitor:
                 self.total_available += 1
             else:
                 output["status"] = False
+
+            self.lock.acquire()
+
+            with open(self.log_path, "a", encoding="utf-8") as file:
+                file.write(proc_out)
+
+            self.lock.release()
         finally:
             self.lock.acquire()
 
             print(json.dumps(output))
-
-            with open(self.log_path, "a", encoding="utf-8") as file:
-                file.write(proc.stdout.decode())
 
             self.lock.release()
 
