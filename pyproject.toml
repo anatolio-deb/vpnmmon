@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vpnmmon"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = ["Анатолий Никифоров <nikiforova693@gmail.com>"]
 

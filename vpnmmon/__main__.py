@@ -99,16 +99,9 @@ class Monitor:
 
         print(
             json.dumps(
-                {
-                    "timestamp": self.timestamp,
-                    "results": sorted(
-                        self.results,
-                        key=lambda result: result["status"]
-                        or result["status"] is False,
-                    ),
-                },
-                # sort_keys=True,
-                # indent=4,
+                {"timestamp": self.timestamp, "results": self.results},
+                sort_keys=True,
+                indent=4,
             )
         )
 
