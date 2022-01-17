@@ -3,6 +3,7 @@ import json
 import logging
 import subprocess
 import threading
+from datetime import datetime
 from typing import List
 
 from vpnmauth import VpnmApiClient, get_hostname_or_address
@@ -14,6 +15,8 @@ class Monitor:
     log_path = "/tmp/vpnmmon.log"
     lock = threading.Lock()
     threads: List[threading.Thread] = []
+    timestamp: float = 0.0
+    results: List = []
 
     def __init__(self) -> None:
         self.nodes = self.client.nodes["data"]["node"]
@@ -53,11 +56,15 @@ class Monitor:
         finally:
             self.lock.acquire()
 
-            print(json.dumps(output))
+            self.results.append(output)
+
+            # print(json.dumps(output))
 
             self.lock.release()
 
     def run(self):
+        self.timestamp = datetime.now().timestamp()
+
         for node in self.nodes:
             thread = threading.Thread(
                 target=self.traceroute,
@@ -72,6 +79,21 @@ class Monitor:
 
         for thread in self.threads:
             thread.join()
+
+        print(
+            json.dumps(
+                {
+                    "timestamp": self.timestamp,
+                    "results": sorted(
+                        self.results,
+                        key=lambda result: result["status"]
+                        or result["status"] is False,
+                    ),
+                },
+                sort_keys=True,
+                indent=4,
+            )
+        )
 
         logging.info("Availability check completed")
         logging.info("%s/%s nodes available", self.total_available, len(self.nodes))
