@@ -140,7 +140,7 @@ if __name__ == "__main__":
     if args.credentials:
         with open(args.credentials, "r", encoding="utf-8") as file:
             credentials = json.load(file)
-        monitor = Monitor(credentials.token, credentials.url)
+        monitor = Monitor(credentials["token"], credentials["url"])
     else:
         monitor = Monitor()
     monitor.run()
