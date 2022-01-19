@@ -10,7 +10,8 @@ from vpnmauth import VpnmApiClient, get_hostname_or_address
 
 
 class Monitor:
-    client = VpnmApiClient()
+    """Gets nodes from VPN Manager backend and traceroutes them"""
+
     total_available = 0
     log_path = "/tmp/vpnmmon.log"
     lock = threading.Lock()
@@ -18,7 +19,8 @@ class Monitor:
     timestamp: float = 0.0
     results: List = []
 
-    def __init__(self) -> None:
+    def __init__(self, token: str, url: str) -> None:
+        self.client = VpnmApiClient(url, token=token)
         self.nodes = self.client.nodes["data"]["node"]
         logging.info("%s nodes recieved", len(self.nodes))
 
@@ -57,8 +59,6 @@ class Monitor:
             self.lock.acquire()
 
             self.results.append(output)
-
-            # print(json.dumps(output))
 
             self.lock.release()
 
@@ -117,6 +117,9 @@ if __name__ == "__main__":
         choices=["debug", "info", "error", "none"],
         default="none",
     )
+    parser.add_argument(
+        "--credentials", help="A path to credentials file, e.g. 'credentials.json'"
+    )
     args = parser.parse_args()
 
     if args.verbosity == "debug":
@@ -128,6 +131,9 @@ if __name__ == "__main__":
     elif args.verbosity == "none":
         LOGGING_LEVEL = logging.CRITICAL
 
+    with open(args.credentials, "r", encoding="utf-8") as file:
+        credentials = json.load(file)
+
     logging.basicConfig(format="%(levelname)s:%(message)s", level=LOGGING_LEVEL)
-    monitor = Monitor()
+    monitor = Monitor(credentials.token, credentials.url)
     monitor.run()
