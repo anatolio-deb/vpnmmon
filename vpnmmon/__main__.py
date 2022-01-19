@@ -18,9 +18,11 @@ class Monitor:
     threads: List[threading.Thread] = []
     timestamp: float = 0.0
     results: List = []
+    client = VpnmApiClient()
 
-    def __init__(self, token: str, url: str) -> None:
-        self.client = VpnmApiClient(url, token=token)
+    def __init__(self, token: str = "", url: str = "") -> None:
+        if url and token:
+            self.client = VpnmApiClient(url, token=token)
         self.nodes = self.client.nodes["data"]["node"]
         logging.info("%s nodes recieved", len(self.nodes))
 
@@ -118,7 +120,9 @@ if __name__ == "__main__":
         default="none",
     )
     parser.add_argument(
-        "--credentials", help="A path to credentials file, e.g. 'credentials.json'"
+        "--credentials",
+        help="A path to credentials file, e.g. 'credentials.json'",
+        default="",
     )
     args = parser.parse_args()
 
@@ -131,9 +135,12 @@ if __name__ == "__main__":
     elif args.verbosity == "none":
         LOGGING_LEVEL = logging.CRITICAL
 
-    with open(args.credentials, "r", encoding="utf-8") as file:
-        credentials = json.load(file)
-
     logging.basicConfig(format="%(levelname)s:%(message)s", level=LOGGING_LEVEL)
-    monitor = Monitor(credentials.token, credentials.url)
+
+    if args.credentials:
+        with open(args.credentials, "r", encoding="utf-8") as file:
+            credentials = json.load(file)
+        monitor = Monitor(credentials.token, credentials.url)
+    else:
+        monitor = Monitor()
     monitor.run()
