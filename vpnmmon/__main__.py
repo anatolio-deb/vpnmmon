@@ -3,9 +3,11 @@ import json
 import logging
 import subprocess
 import threading
+import time
 from datetime import datetime
 from typing import List
 
+import requests.exceptions
 from vpnmauth import VpnmApiClient, get_hostname_or_address
 
 
@@ -33,8 +35,8 @@ class Monitor:
             proc = subprocess.run(
                 ["traceroute", "-T", "-m", "8", host], capture_output=True, check=True
             )
-        except subprocess.CalledProcessError as ex:
-            logging.error(ex.stderr.decode())
+        except subprocess.CalledProcessError as called_process_error:
+            logging.error(called_process_error.stderr.decode())
             output["status"] = None
         else:
             proc_out = proc.stdout.decode()
@@ -53,8 +55,8 @@ class Monitor:
 
             self.lock.acquire()
 
-            with open(self.log_path, "a", encoding="utf-8") as file:
-                file.write(proc_out)
+            with open(self.log_path, "a", encoding="utf-8") as log_file:
+                log_file.write(proc_out)
 
             self.lock.release()
         finally:
@@ -116,13 +118,31 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--verbosity",
+        "-v",
         choices=["debug", "info", "error", "none"],
+        type=str,
         default="none",
     )
     parser.add_argument(
         "--credentials",
+        "-c",
         help="A path to credentials file, e.g. 'credentials.json'",
+        type=str,
         default="",
+    )
+    parser.add_argument(
+        "--retries-count",
+        "-r",
+        help="Maximum retries to take on connection errors",
+        type=int,
+        default=3,
+    )
+    parser.add_argument(
+        "--retries-interval",
+        "-i",
+        help="The time interval in minutes between retries",
+        type=int,
+        default=5,
     )
     args = parser.parse_args()
 
@@ -137,10 +157,29 @@ if __name__ == "__main__":
 
     logging.basicConfig(format="%(levelname)s:%(message)s", level=LOGGING_LEVEL)
 
+    credentials = {"token": "", "url": ""}
+
     if args.credentials:
         with open(args.credentials, "r", encoding="utf-8") as file:
             credentials = json.load(file)
-        monitor = Monitor(credentials["token"], credentials["url"])
+
+    REQUEST_EXCEPTION = None
+
+    while args.retries_count > 0:
+        args.retries_count -= 1
+
+        try:
+            monitor = Monitor(credentials["token"], credentials["url"])
+        except requests.exceptions.RequestException as request_exception:
+            logging.error(request_exception)
+            time.sleep(args.retries_interval * 60)
+
+            if args.retries_count == 0:
+                REQUEST_EXCEPTION = request_exception
+        else:
+            args.retries_count = 0
+
+    if args.retries_count == 0 and not REQUEST_EXCEPTION:
+        monitor.run()
     else:
-        monitor = Monitor()
-    monitor.run()
+        logging.info(REQUEST_EXCEPTION)

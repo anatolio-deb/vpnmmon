@@ -1,12 +1,13 @@
 [tool.poetry]
 name = "vpnmmon"
-version = "0.3.4"
+version = "0.3.5"
 description = ""
 authors = ["Анатолий Никифоров <nikiforova693@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
 vpnmauth = {git = "https://github.com/anatolio-deb/vpnmauth.git"}
+requests = {extras = ["exceptions"], version = "^2.27.1"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
